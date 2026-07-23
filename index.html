@@ -26,11 +26,11 @@
 <body>
 <div id="wrap">
 <canvas id="game"></canvas>
-<div id="hud" class="hidden"><div class="top"><div class="stat">VITALITAS<div class="bar"><div id="hp" class="fill"></div></div><div class="hint">WASD OR ARROWS TO MOVE · AIM &amp; CLICK TO STRIKE</div></div><div id="wave">WAVE I</div><div class="coins">◉ <span id="coin">0</span><div class="hint">DENARII</div></div></div><div id="message"></div></div>
+<div id="hud" class="hidden"><div class="top"><div class="stat">VITALITAS<div class="bar"><div id="hp" class="fill"></div></div><div class="hint">WASD OR ARROWS TO MARCH · AIM &amp; CLICK TO STRIKE</div></div><div id="wave">PROELIUM I</div><div class="coins">◉ <span id="coin">NIHIL</span><div class="hint">DENARII</div></div></div><div id="message"></div></div>
 <div id="vignette"></div>
-<section id="start" class="panel"><h1>GLORIA<br>ARENAE</h1><p>You are the last gladiator beneath a merciless sun. Break the legion, silence the archers, and face the undefeated Champion of Rome.</p><button id="begin">ENTER THE ARENA</button><p class="hint">WASD OR ARROWS · MOUSE AIM · LEFT CLICK / HOLD ATTACK</p></section>
-<section id="upgrade" class="panel hidden"><h2>THE CROWD ROARS</h2><p>Spend denarii. Choose one boon before the next gate opens.</p><div id="cards"></div><button id="skip">SAVE DENARII AND CONTINUE</button></section>
-<section id="end" class="panel hidden"><h2 id="endTitle">MEMENTO MORI</h2><p id="endText"></p><button id="again">FIGHT AGAIN</button></section>
+<section id="start" class="panel"><h1>GLORIA<br>ARENAE</h1><p>Hail gladiator. Beneath the gaze of Rome you must break the legion silence the sagittarii and cast down the undefeated princeps arenae.</p><button id="begin">IN ARENAM DESCENDE</button><p class="hint">WASD OR ARROWS TO MARCH · MOUSE TO AIM · HOLD LEFT CLICK TO STRIKE</p></section>
+<section id="upgrade" class="panel hidden"><h2>PLEBS CLAMAT</h2><p>Offer denarii for one favor before the iron gates open again.</p><div id="cards"></div><button id="skip">KEEP THE DENARII AND MARCH ON</button></section>
+<section id="end" class="panel hidden"><h2 id="endTitle">MEMENTO MORI</h2><p id="endText"></p><button id="again">ITERUM PUGNA</button></section>
 </div>
 <script>
 (() => {
@@ -40,7 +40,7 @@ const hud=$('#hud'), hpEl=$('#hp'), coinEl=$('#coin'), waveEl=$('#wave'), msg=$(
 let W,H,dpr,raf,last=0,state='title',wave=0,coins=0,kills=0,shake=0,flash=0,pendingSpawns=0,spawnTimers=[];
 let player,enemies=[],shots=[],drops=[],particles=[],marks=[],keys={},mouse={x:0,y:0,down:false};
 const TAU=Math.PI*2, clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), rnd=(a,b)=>a+Math.random()*(b-a), dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const roman=n=>['','I','II','III','IV','V'][n]||n;
+const roman=n=>{n=Math.max(0,Math.floor(n));if(!n)return 'NIHIL';let out='',glyphs=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];for(const [v,g] of glyphs)while(n>=v){out+=g;n-=v}return out};
 function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}
 addEventListener('resize',resize);resize();
 function arena(){return {cx:W/2,cy:H/2,rx:Math.max(80,Math.min(W*.43,W/2-35)),ry:Math.max(70,Math.min(H*.40,H/2-35))}}
@@ -48,11 +48,11 @@ function reset(){
  spawnTimers.forEach(clearTimeout);spawnTimers=[];pendingSpawns=0;
  wave=0;coins=kills=0;enemies=[];shots=[];drops=[];particles=[];marks=[];
  player={x:W/2,y:H/2+60,r:17,hp:100,maxHp:100,speed:245,damage:28,reach:70,rate:.4,cd:0,angle:0,att:0,armor:0,crit:.08,lifesteal:0};
- coinEl.textContent=0;hpEl.style.width='100%';startWave();
+ coinEl.textContent='NIHIL';hpEl.style.width='100%';startWave();
 }
 function startWave(){
- wave++;state='play';enemies=[];shots=[];waveEl.textContent=wave===5?'FINAL WAVE · THE CHAMPION':`WAVE ${roman(wave)}`;
- announce(wave===5?'THE CHAMPION ENTERS':`WAVE ${roman(wave)}`);
+ wave++;state='play';enemies=[];shots=[];waveEl.textContent=wave===5?'PROELIUM ULTIMUM · PRINCEPS ARENAE':`PROELIUM ${roman(wave)}`;
+ announce(wave===5?'PRINCEPS ARENAE ADVENIT':`PROELIUM ${roman(wave)}`);
  const packs=[[],[['legionary',5]], [['legionary',5],['archer',3]], [['legionary',6],['archer',4],['lion',2]], [['legionary',8],['archer',5],['lion',4]], [['champion',1],['legionary',4]]][wave];
  pendingSpawns=packs.reduce((sum,[,n])=>sum+n,0);
  packs.forEach(([type,n])=>{for(let i=0;i<n;i++){let timer=setTimeout(()=>{pendingSpawns--;if(state==='play')spawn(type)},i*260+rnd(0,220));spawnTimers.push(timer)}});
@@ -80,7 +80,7 @@ function update(dt){
  let dx=((keys.d||keys.arrowright)?1:0)-((keys.a||keys.arrowleft)?1:0),dy=((keys.s||keys.arrowdown)?1:0)-((keys.w||keys.arrowup)?1:0),m=Math.hypot(dx,dy)||1;moveInside(player,dx/m*player.speed*dt,dy/m*player.speed*dt);
  player.angle=Math.atan2(mouse.y-player.y,mouse.x-player.x);if(mouse.down)attack();
  enemies.forEach(e=>enemyAI(e,dt));shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;if(dist(s,player)<player.r+s.r){damage(s.damage);s.life=0}});
- drops.forEach(d=>{d.t+=dt;let q=dist(d,player);if(q<130){d.x+=(player.x-d.x)*dt*5;d.y+=(player.y-d.y)*dt*5}if(q<player.r+10){coins+=d.v;coinEl.textContent=coins;d.dead=true}});
+ drops.forEach(d=>{d.t+=dt;let q=dist(d,player);if(q<130){d.x+=(player.x-d.x)*dt*5;d.y+=(player.y-d.y)*dt*5}if(q<player.r+10){coins+=d.v;coinEl.textContent=roman(coins);d.dead=true}});
  particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.94;p.vy*=.94;p.life-=dt});
  enemies=enemies.filter(e=>!e.dead);shots=shots.filter(s=>s.life>0);drops=drops.filter(d=>!d.dead);particles=particles.filter(p=>p.life>0);marks=marks.slice(-35);
  shake=Math.max(0,shake-35*dt);flash=Math.max(0,flash-dt);
@@ -94,7 +94,7 @@ function enemyAI(e,dt){
  }else{
    let range=e.r+player.r+5;if(d>range)moveInside(e,Math.cos(ang)*e.speed*dt,Math.sin(ang)*e.speed*dt);
    if(d<range+8&&e.cd<=0){damage(e.damage);e.cd=e.type==='lion'?.75:e.type==='champion'?.9:1.1}
-   if(e.type==='champion'&&e.hp<e.maxHp*.5&&!e.phase){e.phase=1;e.speed=120;e.damage=30;announce('THE CHAMPION IS ENRAGED')}
+   if(e.type==='champion'&&e.hp<e.maxHp*.5&&!e.phase){e.phase=1;e.speed=120;e.damage=30;announce('FUROR PRINCIPIS')}
    if(e.type==='champion'&&e.cd<=.15&&e.phase&&Math.random()<.018){for(let i=0;i<8;i++)fire(e,i*TAU/8,210,10)}
  }
 }
@@ -105,17 +105,17 @@ function burst(px,py,color,n){for(let i=0;i<n;i++){let a=rnd(0,TAU),s=rnd(25,150
 function dust(px,py,n){burst(px,py,'#c79a64',n)}
 function announce(t){msg.textContent=t;msg.style.opacity=1;setTimeout(()=>msg.style.opacity=0,1300)}
 function showUpgrade(){state='upgrade';$('#upgrade').classList.remove('hidden');const all=[
- {i:'⚔',n:'Tempered Gladius',d:'+9 strike damage',cost:8,go:()=>player.damage+=9},
- {i:'🛡',n:'Scutum',d:'Take 14% less damage',cost:7,go:()=>player.armor=Math.min(.56,player.armor+.14)},
- {i:'✦',n:'Mercury’s Step',d:'+12% movement speed',cost:6,go:()=>player.speed*=1.12},
- {i:'❤',n:'Redemption',d:'+25 maximum health; fully heal',cost:9,go:()=>{player.maxHp+=25;player.hp=player.maxHp}},
- {i:'☄',n:'Long Reach',d:'+16 attack reach',cost:7,go:()=>player.reach+=16},
- {i:'♜',n:'Fury',d:'Attack 15% faster',cost:8,go:()=>player.rate*=.85},
- {i:'✹',n:'Fortune’s Edge',d:'+10% critical chance',cost:7,go:()=>player.crit+=.10},
- {i:'⚕',n:'Blood Oath',d:'Heal 8% of damage dealt',cost:10,go:()=>player.lifesteal+=.08}
- ].sort(()=>Math.random()-.5).slice(0,3);const box=$('#cards');box.innerHTML='';all.forEach(u=>{let el=document.createElement('div');el.className='card';el.innerHTML=`<div class="icon">${u.i}</div><h3>${u.n}</h3><p>${u.d}</p><div class="cost">◉ ${u.cost}</div>`;el.onclick=()=>{if(coins<u.cost){el.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'none'}],{duration:220});return}coins-=u.cost;coinEl.textContent=coins;u.go();hpEl.style.width=`${100*player.hp/player.maxHp}%`;$('#upgrade').classList.add('hidden');startWave()};box.appendChild(el)});
+ {i:'⚔',n:'GLADIUS TEMPERATUS',d:'ADD IX PARTS TO EVERY STRIKE',cost:8,go:()=>player.damage+=9},
+ {i:'🛡',n:'SCUTUM',d:'TURN ASIDE XIV PARTS OF EVERY C OF HARM',cost:7,go:()=>player.armor=Math.min(.56,player.armor+.14)},
+ {i:'✦',n:'GRADUS MERCURII',d:'MARCH XII PARTS IN C FASTER',cost:6,go:()=>player.speed*=1.12},
+ {i:'❤',n:'REDEMPTIO',d:'GAIN XXV VITALITAS AND RESTORE IT ALL',cost:9,go:()=>{player.maxHp+=25;player.hp=player.maxHp}},
+ {i:'☄',n:'HASTA LONGA',d:'EXTEND YOUR REACH BY XVI PARTS',cost:7,go:()=>player.reach+=16},
+ {i:'♜',n:'FUROR MARTIS',d:'STRIKE XV PARTS IN C FASTER',cost:8,go:()=>player.rate*=.85},
+ {i:'✹',n:'FORTUNA',d:'GAIN X PARTS IN C CHANCE OF A MIGHTY BLOW',cost:7,go:()=>player.crit+=.10},
+ {i:'⚕',n:'IUS SANGUINIS',d:'RESTORE VIII PARTS IN C OF HARM DEALT',cost:10,go:()=>player.lifesteal+=.08}
+ ].sort(()=>Math.random()-.5).slice(0,3);const box=$('#cards');box.innerHTML='';all.forEach(u=>{let el=document.createElement('div');el.className='card';el.innerHTML=`<div class="icon">${u.i}</div><h3>${u.n}</h3><p>${u.d}</p><div class="cost">◉ ${roman(u.cost)}</div>`;el.onclick=()=>{if(coins<u.cost){el.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'none'}],{duration:220});return}coins-=u.cost;coinEl.textContent=roman(coins);u.go();hpEl.style.width=`${100*player.hp/player.maxHp}%`;$('#upgrade').classList.add('hidden');startWave()};box.appendChild(el)});
 }
-function finish(win){state='end';mouse.down=false;$('#end').classList.remove('hidden');$('#endTitle').textContent=win?'GLORIA! GLORIA!':'MEMENTO MORI';$('#endText').textContent=win?`The Champion has fallen. Rome chants your name. ${kills} foes defeated.`:`Your blood darkens the sand after ${kills} victories. The arena awaits your return.`}
+function finish(win){state='end';mouse.down=false;$('#end').classList.remove('hidden');$('#endTitle').textContent=win?'GLORIA ROMAE':'MEMENTO MORI';$('#endText').textContent=win?`Princeps arenae has fallen. Rome acclaims you. Enemies sent to Orcus ${roman(kills)}.`:`The sand drinks your blood after ${roman(kills)} victories. The arena awaits your return.`}
 function draw(){
  x.clearRect(0,0,W,H);x.save();if(shake)x.translate(rnd(-shake,shake),rnd(-shake,shake));drawArena();
  marks.forEach(m=>{x.save();x.translate(m.x,m.y);x.rotate(m.a);x.fillStyle='#641f1880';x.beginPath();x.ellipse(0,0,m.r,m.r*.45,0,0,TAU);x.fill();x.restore()});
