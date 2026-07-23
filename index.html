@@ -26,9 +26,9 @@
 <body>
 <div id="wrap">
 <canvas id="game"></canvas>
-<div id="hud" class="hidden"><div class="top"><div class="stat">VITALITAS<div class="bar"><div id="hp" class="fill"></div></div><div class="hint">WASD TO MOVE · AIM &amp; CLICK TO STRIKE</div></div><div id="wave">WAVE I</div><div class="coins">◉ <span id="coin">0</span><div class="hint">DENARII</div></div></div><div id="message"></div></div>
+<div id="hud" class="hidden"><div class="top"><div class="stat">VITALITAS<div class="bar"><div id="hp" class="fill"></div></div><div class="hint">WASD OR ARROWS TO MOVE · AIM &amp; CLICK TO STRIKE</div></div><div id="wave">WAVE I</div><div class="coins">◉ <span id="coin">0</span><div class="hint">DENARII</div></div></div><div id="message"></div></div>
 <div id="vignette"></div>
-<section id="start" class="panel"><h1>GLORIA<br>ARENAE</h1><p>You are the last gladiator beneath a merciless sun. Break the legion, silence the archers, and face the undefeated Champion of Rome.</p><button id="begin">ENTER THE ARENA</button><p class="hint">WASD · MOUSE AIM · LEFT CLICK / HOLD ATTACK</p></section>
+<section id="start" class="panel"><h1>GLORIA<br>ARENAE</h1><p>You are the last gladiator beneath a merciless sun. Break the legion, silence the archers, and face the undefeated Champion of Rome.</p><button id="begin">ENTER THE ARENA</button><p class="hint">WASD OR ARROWS · MOUSE AIM · LEFT CLICK / HOLD ATTACK</p></section>
 <section id="upgrade" class="panel hidden"><h2>THE CROWD ROARS</h2><p>Spend denarii. Choose one boon before the next gate opens.</p><div id="cards"></div><button id="skip">SAVE DENARII AND CONTINUE</button></section>
 <section id="end" class="panel hidden"><h2 id="endTitle">MEMENTO MORI</h2><p id="endText"></p><button id="again">FIGHT AGAIN</button></section>
 </div>
@@ -77,7 +77,7 @@ function damage(d){if(state!=='play'||player.inv>0)return;d*=1-player.armor;play
 function heal(n){player.hp=Math.min(player.maxHp,player.hp+n);hpEl.style.width=`${100*player.hp/player.maxHp}%`}
 function update(dt){
  if(state!=='play')return;player.cd-=dt;player.att-=dt;player.inv=(player.inv||0)-dt;
- let dx=(keys.d?1:0)-(keys.a?1:0),dy=(keys.s?1:0)-(keys.w?1:0),m=Math.hypot(dx,dy)||1;moveInside(player,dx/m*player.speed*dt,dy/m*player.speed*dt);
+ let dx=((keys.d||keys.arrowright)?1:0)-((keys.a||keys.arrowleft)?1:0),dy=((keys.s||keys.arrowdown)?1:0)-((keys.w||keys.arrowup)?1:0),m=Math.hypot(dx,dy)||1;moveInside(player,dx/m*player.speed*dt,dy/m*player.speed*dt);
  player.angle=Math.atan2(mouse.y-player.y,mouse.x-player.x);if(mouse.down)attack();
  enemies.forEach(e=>enemyAI(e,dt));shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;if(dist(s,player)<player.r+s.r){damage(s.damage);s.life=0}});
  drops.forEach(d=>{d.t+=dt;let q=dist(d,player);if(q<130){d.x+=(player.x-d.x)*dt*5;d.y+=(player.y-d.y)*dt*5}if(q<player.r+10){coins+=d.v;coinEl.textContent=coins;d.dead=true}});
@@ -138,7 +138,7 @@ function drawEnemy(e){shadow(e);x.save();x.translate(e.x,e.y);x.rotate(e.angle);
 function drawCoin(d){let bob=Math.sin(d.t*7)*2;x.fillStyle='#4f3017';x.beginPath();x.arc(d.x+2,d.y+3+bob,d.r,0,TAU);x.fill();x.fillStyle='#f0c553';x.beginPath();x.arc(d.x,d.y+bob,d.r,0,TAU);x.fill();x.strokeStyle='#fff0a0';x.stroke()}
 function drawShot(s){x.fillStyle='#331a10';x.beginPath();x.arc(s.x,s.y,s.r,0,TAU);x.fill();x.strokeStyle='#d9b66b';x.beginPath();x.moveTo(s.x-s.vx*.045,s.y-s.vy*.045);x.lineTo(s.x,s.y);x.stroke()}
 function loop(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();raf=requestAnimationFrame(loop)}raf=requestAnimationFrame(loop);
-addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(['w','a','s','d',' '].includes(e.key.toLowerCase()))e.preventDefault()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+addEventListener('keydown',e=>{let k=e.key.toLowerCase();keys[k]=true;if(['w','a','s','d',' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 c.addEventListener('mousemove',e=>{let r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)*W/r.width;mouse.y=(e.clientY-r.top)*H/r.height});c.addEventListener('mousedown',e=>{if(e.button===0){mouse.down=true;attack()}});addEventListener('mouseup',()=>mouse.down=false);c.addEventListener('contextmenu',e=>e.preventDefault());
 $('#begin').onclick=()=>{$('#start').classList.add('hidden');hud.classList.remove('hidden');reset()};$('#again').onclick=()=>{$('#end').classList.add('hidden');reset()};$('#skip').onclick=()=>{$('#upgrade').classList.add('hidden');startWave()};
 })();
