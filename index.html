@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="la">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Gloria Arenae</title>
+<title>GLORIA ARENAE</title>
 <style>
   :root{--gold:#e5b84d;--blood:#b8332d;--ink:#15110e;--sand:#b9874e}
   *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#100d0b;color:#f5e7ca;font-family:Georgia,serif}
   body{display:grid;place-items:center;background:radial-gradient(circle at 50% 40%,#3b2b20,#120e0b 70%)}
-  #wrap{position:relative;width:100vw;height:100vh;cursor:crosshair}
+  #wrap{position:relative;width:100vw;height:100vh;cursor:crosshair;touch-action:none}
   canvas{width:100%;height:100%;display:block}
   #hud{position:absolute;inset:0;pointer-events:none;text-shadow:0 2px 3px #000;letter-spacing:.08em}
   .top{display:flex;justify-content:space-between;align-items:flex-start;padding:22px 26px;font-weight:bold}
@@ -20,16 +20,18 @@
   button{font:700 16px Georgia,serif;letter-spacing:.13em;color:#1d120a;background:linear-gradient(#f3cf76,#bd7d2e);border:2px solid #ffe5a3;outline:2px solid #713c1e;padding:14px 27px;margin-top:16px;cursor:pointer;box-shadow:0 5px 18px #000;transition:.15s}button:hover{transform:translateY(-2px);filter:brightness(1.12)}
   #cards{display:flex;gap:18px;max-width:1000px;margin-top:20px}.card{width:260px;min-height:225px;color:#f6e3bd;background:linear-gradient(150deg,#4a2d1f,#251712);border:2px solid #bc853d;outline:1px solid #f5cd74;padding:22px 18px;cursor:pointer;transition:.18s;box-shadow:0 10px 25px #0008}.card:hover{transform:translateY(-7px);background:#583623}.card .icon{font-size:40px}.card h3{color:#f2c565;margin:10px 0;font-size:21px}.card p{font-size:14px;line-height:1.35}.cost{color:#ffd466;font-weight:bold}
   #vignette{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 130px 35px #160806cc}
+  .touchHint{display:none}
+  @media(pointer:coarse){.desktopHint{display:none}.touchHint{display:inline}}
   @media(max-width:760px){#cards{flex-direction:column;gap:8px}.card{width:min(82vw,440px);min-height:0;padding:10px}.card .icon{font-size:24px}.card p{margin:5px}.top{padding:12px}.stat{min-width:150px}}
 </style>
 </head>
 <body>
 <div id="wrap">
 <canvas id="game"></canvas>
-<div id="hud" class="hidden"><div class="top"><div class="stat">VITALITAS<div class="bar"><div id="hp" class="fill"></div></div><div class="hint">WASD OR ARROWS TO MARCH · AIM &amp; CLICK TO STRIKE</div></div><div id="wave">PROELIUM I</div><div class="coins">◉ <span id="coin">NIHIL</span><div class="hint">DENARII</div></div></div><div id="message"></div></div>
+<div id="hud" class="hidden"><div class="top"><div class="stat">VITALITAS<div class="bar"><div id="hp" class="fill"></div></div><div class="hint"><span class="desktopHint">WASD AUT SAGITTAE AD INCEDENDUM · MUREM MOVE · SINISTRUM PREME AD FERIRE</span><span class="touchHint">POLLEX SINISTER INCEDIT · POLLEX DEXTER PETIT ET FERIT</span></div></div><div id="wave">PROELIUM I</div><div class="coins">◉ <span id="coin">NIHIL</span><div class="hint">DENARII</div></div></div><div id="message"></div></div>
 <div id="vignette"></div>
-<section id="start" class="panel"><h1>GLORIA<br>ARENAE</h1><p>Hail gladiator. Beneath the gaze of Rome you must break the legion silence the sagittarii and cast down the undefeated princeps arenae.</p><button id="begin">IN ARENAM DESCENDE</button><p class="hint">WASD OR ARROWS TO MARCH · MOUSE TO AIM · HOLD LEFT CLICK TO STRIKE</p></section>
-<section id="upgrade" class="panel hidden"><h2>PLEBS CLAMAT</h2><p>Offer denarii for one favor before the iron gates open again.</p><div id="cards"></div><button id="skip">KEEP THE DENARII AND MARCH ON</button></section>
+<section id="start" class="panel"><h1>GLORIA<br>ARENAE</h1><p>AVE GLADIATOR SUB OCULIS ROMAE COHORTEM DAMNATORUM SAGITTARIOS LEONES ET INVICTUM PRINCIPEM ARENAE SUPERA</p><button id="begin">IN ARENAM DESCENDE</button><p class="hint"><span class="desktopHint">WASD AUT SAGITTAE AD INCEDENDUM · MUREM MOVE · SINISTRUM PREME AD FERIRE</span><span class="touchHint">POLLEX SINISTER INCEDIT · POLLEX DEXTER PETIT ET FERIT</span></p></section>
+<section id="upgrade" class="panel hidden"><h2>PLEBS CLAMAT</h2><p>DENARIOS IMMOLA ET UNUM DONUM ELIGE ANTEQUAM PORTAE FERREAE ITERUM PATEANT</p><div id="cards"></div><button id="skip">DENARIOS SERVA ET PROCEDE</button></section>
 <section id="end" class="panel hidden"><h2 id="endTitle">MEMENTO MORI</h2><p id="endText"></p><button id="again">ITERUM PUGNA</button></section>
 </div>
 <script>
@@ -38,7 +40,7 @@
 const $=s=>document.querySelector(s), c=$('#game'), x=c.getContext('2d');
 const hud=$('#hud'), hpEl=$('#hp'), coinEl=$('#coin'), waveEl=$('#wave'), msg=$('#message');
 let W,H,dpr,raf,last=0,state='title',wave=0,coins=0,kills=0,shake=0,flash=0,pendingSpawns=0,spawnTimers=[];
-let player,enemies=[],shots=[],drops=[],particles=[],marks=[],keys={},mouse={x:0,y:0,down:false};
+let player,enemies=[],shots=[],drops=[],particles=[],marks=[],keys={},mouse={x:0,y:0,down:false},touch={moveId:null,aimId:null,ox:0,oy:0,x:0,y:0};
 const TAU=Math.PI*2, clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), rnd=(a,b)=>a+Math.random()*(b-a), dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const roman=n=>{n=Math.max(0,Math.floor(n));if(!n)return 'NIHIL';let out='',glyphs=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];for(const [v,g] of glyphs)while(n>=v){out+=g;n-=v}return out};
 function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;c.width=W*dpr;c.height=H*dpr;x.setTransform(dpr,0,0,dpr,0,0)}
@@ -77,7 +79,8 @@ function damage(d){if(state!=='play'||player.inv>0)return;d*=1-player.armor;play
 function heal(n){player.hp=Math.min(player.maxHp,player.hp+n);hpEl.style.width=`${100*player.hp/player.maxHp}%`}
 function update(dt){
  if(state!=='play')return;player.cd-=dt;player.att-=dt;player.inv=(player.inv||0)-dt;
- let dx=((keys.d||keys.arrowright)?1:0)-((keys.a||keys.arrowleft)?1:0),dy=((keys.s||keys.arrowdown)?1:0)-((keys.w||keys.arrowup)?1:0),m=Math.hypot(dx,dy)||1;moveInside(player,dx/m*player.speed*dt,dy/m*player.speed*dt);
+ let dx=((keys.d||keys.arrowright)?1:0)-((keys.a||keys.arrowleft)?1:0),dy=((keys.s||keys.arrowdown)?1:0)-((keys.w||keys.arrowup)?1:0);
+ if(touch.moveId!==null){dx+=(touch.x-touch.ox)/55;dy+=(touch.y-touch.oy)/55}let m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m}moveInside(player,dx*player.speed*dt,dy*player.speed*dt);
  player.angle=Math.atan2(mouse.y-player.y,mouse.x-player.x);if(mouse.down)attack();
  enemies.forEach(e=>enemyAI(e,dt));shots.forEach(s=>{s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;if(dist(s,player)<player.r+s.r){damage(s.damage);s.life=0}});
  drops.forEach(d=>{d.t+=dt;let q=dist(d,player);if(q<130){d.x+=(player.x-d.x)*dt*5;d.y+=(player.y-d.y)*dt*5}if(q<player.r+10){coins+=d.v;coinEl.textContent=roman(coins);d.dead=true}});
@@ -105,22 +108,23 @@ function burst(px,py,color,n){for(let i=0;i<n;i++){let a=rnd(0,TAU),s=rnd(25,150
 function dust(px,py,n){burst(px,py,'#c79a64',n)}
 function announce(t){msg.textContent=t;msg.style.opacity=1;setTimeout(()=>msg.style.opacity=0,1300)}
 function showUpgrade(){state='upgrade';$('#upgrade').classList.remove('hidden');const all=[
- {i:'⚔',n:'GLADIUS TEMPERATUS',d:'ADD IX PARTS TO EVERY STRIKE',cost:8,go:()=>player.damage+=9},
- {i:'🛡',n:'SCUTUM',d:'TURN ASIDE XIV PARTS OF EVERY C OF HARM',cost:7,go:()=>player.armor=Math.min(.56,player.armor+.14)},
- {i:'✦',n:'GRADUS MERCURII',d:'MARCH XII PARTS IN C FASTER',cost:6,go:()=>player.speed*=1.12},
- {i:'❤',n:'REDEMPTIO',d:'GAIN XXV VITALITAS AND RESTORE IT ALL',cost:9,go:()=>{player.maxHp+=25;player.hp=player.maxHp}},
- {i:'☄',n:'HASTA LONGA',d:'EXTEND YOUR REACH BY XVI PARTS',cost:7,go:()=>player.reach+=16},
- {i:'♜',n:'FUROR MARTIS',d:'STRIKE XV PARTS IN C FASTER',cost:8,go:()=>player.rate*=.85},
- {i:'✹',n:'FORTUNA',d:'GAIN X PARTS IN C CHANCE OF A MIGHTY BLOW',cost:7,go:()=>player.crit+=.10},
- {i:'⚕',n:'IUS SANGUINIS',d:'RESTORE VIII PARTS IN C OF HARM DEALT',cost:10,go:()=>player.lifesteal+=.08}
+ {i:'⚔︎',n:'GLADIUS TEMPERATUS',d:'ICTUS QUISQUE IX PARTIBUS ACRIOR',cost:8,go:()=>player.damage+=9},
+ {i:'◉',n:'SCUTUM',d:'SCUTUM XIV PARTES EX OMNI C VULNERUM REPELLIT',cost:7,go:()=>player.armor=Math.min(.56,player.armor+.14)},
+ {i:'☿',n:'GRADUS MERCURII',d:'MERCURIUS GRADUM XII PARTIBUS EX C CELERIOREM FACIT',cost:6,go:()=>player.speed*=1.12},
+ {i:'♥︎',n:'REDEMPTIO',d:'VITALITATEM XXV PARTIBUS AUGE ET OMNEM RESTITUE',cost:9,go:()=>{player.maxHp+=25;player.hp=player.maxHp}},
+ {i:'↟',n:'HASTA LONGA',d:'HASTA XVI PARTIBUS LONGIUS PERTINGIT',cost:7,go:()=>player.reach+=16},
+ {i:'♂',n:'FUROR MARTIS',d:'MARS ICTUS XV PARTIBUS EX C CELERIORES FACIT',cost:8,go:()=>player.rate*=.85},
+ {i:'✶',n:'FORTUNA',d:'FORTUNA X ICTIBUS EX OMNI C FAVET',cost:7,go:()=>player.crit+=.10},
+ {i:'⚕︎',n:'IUS SANGUINIS',d:'EX QUOQUE VULNERE DATO VIII PARTES EX C RECUPERA',cost:10,go:()=>player.lifesteal+=.08}
  ].sort(()=>Math.random()-.5).slice(0,3);const box=$('#cards');box.innerHTML='';all.forEach(u=>{let el=document.createElement('div');el.className='card';el.innerHTML=`<div class="icon">${u.i}</div><h3>${u.n}</h3><p>${u.d}</p><div class="cost">◉ ${roman(u.cost)}</div>`;el.onclick=()=>{if(coins<u.cost){el.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'none'}],{duration:220});return}coins-=u.cost;coinEl.textContent=roman(coins);u.go();hpEl.style.width=`${100*player.hp/player.maxHp}%`;$('#upgrade').classList.add('hidden');startWave()};box.appendChild(el)});
 }
-function finish(win){state='end';mouse.down=false;$('#end').classList.remove('hidden');$('#endTitle').textContent=win?'GLORIA ROMAE':'MEMENTO MORI';$('#endText').textContent=win?`Princeps arenae has fallen. Rome acclaims you. Enemies sent to Orcus ${roman(kills)}.`:`The sand drinks your blood after ${roman(kills)} victories. The arena awaits your return.`}
+function finish(win){state='end';mouse.down=false;touch.moveId=touch.aimId=null;$('#end').classList.remove('hidden');$('#endTitle').textContent=win?'GLORIA ROMAE':'MEMENTO MORI';$('#endText').textContent=win?`PRINCEPS ARENAE CECIDIT ROMA TE ACCLAMAT HOSTES AD ORCUM MISSI ${roman(kills)}`:`ARENA SANGUINEM TUUM BIBIT POST VICTORIAS ${roman(kills)} ROMA ITERUM TE VOCABIT`}
 function draw(){
  x.clearRect(0,0,W,H);x.save();if(shake)x.translate(rnd(-shake,shake),rnd(-shake,shake));drawArena();
  marks.forEach(m=>{x.save();x.translate(m.x,m.y);x.rotate(m.a);x.fillStyle='#641f1880';x.beginPath();x.ellipse(0,0,m.r,m.r*.45,0,0,TAU);x.fill();x.restore()});
- drops.forEach(drawCoin);shots.forEach(drawShot);enemies.forEach(drawEnemy);if(player)drawPlayer();particles.forEach(p=>{x.globalAlpha=clamp(p.life/p.max,0,1);x.fillStyle=p.color;x.beginPath();x.arc(p.x,p.y,p.r,0,TAU);x.fill();x.globalAlpha=1});x.restore();if(flash){x.fillStyle=`rgba(170,10,5,${flash*.7})`;x.fillRect(0,0,W,H)}
+ drops.forEach(drawCoin);shots.forEach(drawShot);enemies.forEach(drawEnemy);if(player)drawPlayer();particles.forEach(p=>{x.globalAlpha=clamp(p.life/p.max,0,1);x.fillStyle=p.color;x.beginPath();x.arc(p.x,p.y,p.r,0,TAU);x.fill();x.globalAlpha=1});x.restore();drawTouchControls();if(flash){x.fillStyle=`rgba(170,10,5,${flash*.7})`;x.fillRect(0,0,W,H)}
 }
+function drawTouchControls(){if(state!=='play')return;x.save();x.lineWidth=3;x.strokeStyle='#f0c86a88';x.fillStyle='#5e351f66';if(touch.moveId!==null){let dx=touch.x-touch.ox,dy=touch.y-touch.oy,m=Math.hypot(dx,dy)||1,q=Math.min(38,m);x.beginPath();x.arc(touch.ox,touch.oy,48,0,TAU);x.stroke();x.beginPath();x.arc(touch.ox+dx/m*q,touch.oy+dy/m*q,20,0,TAU);x.fill();x.stroke()}if(touch.aimId!==null){x.beginPath();x.arc(mouse.x,mouse.y,28,0,TAU);x.stroke();x.beginPath();x.moveTo(mouse.x-10,mouse.y);x.lineTo(mouse.x+10,mouse.y);x.moveTo(mouse.x,mouse.y-10);x.lineTo(mouse.x,mouse.y+10);x.stroke()}x.restore()}
 function drawArena(){
  let a=arena(),g=x.createRadialGradient(a.cx,a.cy,50,a.cx,a.cy,a.rx);g.addColorStop(0,'#c89558');g.addColorStop(1,'#8c5a35');x.fillStyle=g;x.fillRect(0,0,W,H);
  x.save();x.translate(a.cx,a.cy);x.strokeStyle='#e8bb7070';x.lineWidth=5;x.beginPath();x.ellipse(0,0,a.rx,a.ry,0,0,TAU);x.stroke();x.strokeStyle='#58351f';x.lineWidth=Math.max(40,Math.min(W,H)*.075);x.beginPath();x.ellipse(0,0,a.rx+26,a.ry+26,0,0,TAU);x.stroke();x.strokeStyle='#d19b5650';x.lineWidth=3;for(let i=0;i<28;i++){let q=i*TAU/28;x.beginPath();x.moveTo(Math.cos(q)*(a.rx+2),Math.sin(q)*(a.ry+2));x.lineTo(Math.cos(q)*(a.rx+52),Math.sin(q)*(a.ry+52));x.stroke()}x.restore();
@@ -140,6 +144,11 @@ function drawShot(s){x.fillStyle='#331a10';x.beginPath();x.arc(s.x,s.y,s.r,0,TAU
 function loop(t){let dt=Math.min(.033,(t-last)/1000||0);last=t;update(dt);draw();raf=requestAnimationFrame(loop)}raf=requestAnimationFrame(loop);
 addEventListener('keydown',e=>{let k=e.key.toLowerCase();keys[k]=true;if(['w','a','s','d',' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
 c.addEventListener('mousemove',e=>{let r=c.getBoundingClientRect();mouse.x=(e.clientX-r.left)*W/r.width;mouse.y=(e.clientY-r.top)*H/r.height});c.addEventListener('mousedown',e=>{if(e.button===0){mouse.down=true;attack()}});addEventListener('mouseup',()=>mouse.down=false);c.addEventListener('contextmenu',e=>e.preventDefault());
+function touchPoint(e){let r=c.getBoundingClientRect();return {x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+c.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||state!=='play')return;e.preventDefault();let p=touchPoint(e);c.setPointerCapture(e.pointerId);if(p.x<W/2&&touch.moveId===null){touch.moveId=e.pointerId;touch.ox=touch.x=p.x;touch.oy=touch.y=p.y}else if(touch.aimId===null){touch.aimId=e.pointerId;mouse.x=p.x;mouse.y=p.y;mouse.down=true;attack()}});
+c.addEventListener('pointermove',e=>{if(e.pointerType!=='touch')return;let p=touchPoint(e);if(e.pointerId===touch.moveId){touch.x=p.x;touch.y=p.y}if(e.pointerId===touch.aimId){mouse.x=p.x;mouse.y=p.y}});
+function endTouch(e){if(e.pointerId===touch.moveId)touch.moveId=null;if(e.pointerId===touch.aimId){touch.aimId=null;mouse.down=false}}
+c.addEventListener('pointerup',endTouch);c.addEventListener('pointercancel',endTouch);
 $('#begin').onclick=()=>{$('#start').classList.add('hidden');hud.classList.remove('hidden');reset()};$('#again').onclick=()=>{$('#end').classList.add('hidden');reset()};$('#skip').onclick=()=>{$('#upgrade').classList.add('hidden');startWave()};
 })();
 </script>
